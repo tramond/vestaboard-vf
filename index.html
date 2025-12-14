@@ -115,30 +115,30 @@ async function getNowPlaying() {
     const res = await fetch(SONOS_URL);
     const zones = await res.json();
 
-    if (!Array.isArray(zones) || zones.length === 0) return null;
+    if (!Array.isArray(zones)) return null;
 
-    // Use the coordinator (this is always the authoritative player)
-    const zone = zones[0];
-    const state = zone.coordinator?.state;
+    // Find ANY zone whose coordinator is actively playing
+    const playingZone = zones.find(zone =>
+      zone.coordinator &&
+      zone.coordinator.state &&
+      zone.coordinator.state.playbackState === "PLAYING" &&
+      zone.coordinator.state.currentTrack &&
+      zone.coordinator.state.currentTrack.title
+    );
 
-    if (
-      !state ||
-      state.playbackState !== "PLAYING" ||
-      !state.currentTrack
-    ) {
-      return null;
-    }
+    if (!playingZone) return null;
+
+    const track = playingZone.coordinator.state.currentTrack;
 
     return {
-      artist: state.currentTrack.artist || "",
-      title: state.currentTrack.title || ""
+      artist: track.artist || "",
+      title: track.title || ""
     };
   } catch (e) {
     console.error("Sonos error:", e);
     return null;
   }
 }
-
 
 
 /* ================= ROTATION ================= */
