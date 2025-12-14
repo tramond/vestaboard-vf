@@ -7,7 +7,7 @@
   <style>
     body {
       margin: 0;
-      background: #111;              /* background behind vestaboard */
+      background: #111;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -25,22 +25,22 @@
       display: grid;
       grid-template-columns: repeat(22, 1fr);
       grid-template-rows: repeat(6, 1fr);
-      gap: 0.8vw;
-      padding: 1.5vw;
-      background: #000;              /* vestaboard background */
-      border-radius: 12px;
+      gap: 0.35vw;              /* 🔽 reduced gap */
+      padding: 0.8vw;           /* 🔽 reduced padding */
+      background: #000;
+      border-radius: 10px;
       aspect-ratio: 22 / 6;
     }
 
     .cell {
       background: #111;
-      color: #ffcc00;                /* text color */
+      color: #ffcc00;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 2.2vw;
+      font-size: 2.3vw;         /* slightly larger text */
       font-weight: bold;
-      border-radius: 0.4vw;
+      border-radius: 0.25vw;    /* tighter corners */
       text-transform: uppercase;
     }
   </style>
@@ -57,7 +57,6 @@
     const text = "NOW PLAYING: DEMO SONG";
 
     const board = document.getElementById("board");
-
     board.innerHTML = "";
 
     for (let i = 0; i < rows * cols; i++) {
