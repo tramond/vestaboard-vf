@@ -1,5 +1,6 @@
-export default async function handler(req, res) {
-  const code = req.query.code;
+export default function handler(req, res) {
+  const requestUrl = new URL(req.url, `https://${req.headers.host}`);
+  const code = requestUrl.searchParams.get("code");
 
   if (!code) {
     return res.status(400).send("Missing authorization code");
