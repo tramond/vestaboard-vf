@@ -1,71 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vestaboard Sonos</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: monospace;
+    color: #f5f5f5;
+  }
+
+  #board {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 90vw;
+    max-width: 800px;
+    text-align: center;
+    font-size: 28px;
+    letter-spacing: 2px;
+  }
+
+  .row {
+    min-height: 34px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+
+<body>
+  <div id="board"></div>
+
 <script>
+/* ================= CONFIG ================= */
+
 const SONOS_URL = "http://192.168.86.26:5005/zones";
 
 const CUSTOM_MESSAGES = [
   "WELCOME HOME",
-  "NOW PLAYING ON SONOS",
   "GOOD VIBES ONLY",
+  "NOW PLAYING ON SONOS",
   "ENJOY THE MUSIC"
-  "MERRY CHRISTMAS NIKKUH - FROM PINKY NIKKUH"
-  "TURN IT UP"
-  "THE BAISDEN FAMILY HOME"
-  "WE WISH YOU A MERRY CHRISTMAS"
-  "HEY KENDALL!"
-  "HEY RIVER!"
 ];
 
-const DISPLAY_INTERVAL = 45000; // 45 seconds
-const MAX_LINE_LENGTH = 22;
+const ROTATE_INTERVAL = 45000;
+const MAX_CHARS_PER_LINE = 22;
 
-let customIndex = 0;
+/* ================= STATE ================= */
+
 let showNowPlaying = true;
+let customIndex = 0;
 
-// ---------------- SONOS ----------------
+/* ================= UTIL ================= */
 
-async function getNowPlaying() {
-  try {
-    const res = await fetch(SONOS_URL);
-    const zones = await res.json();
+function wrapText(text) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
 
-    const playingZone = zones.find(z => z.state === "playing");
-    if (!playingZone) return null;
-
-    return {
-      artist: playingZone.artist || "",
-      title: playingZone.title || ""
-    };
-  } catch (e) {
-    console.error("Sonos error", e);
-    return null;
+  for (const word of words) {
+    if ((line + word).length <= MAX_CHARS_PER_LINE) {
+      line += (line ? " " : "") + word;
+    } else {
+      lines.push(line);
+      line = word;
+    }
   }
+  if (line) lines.push(line);
+  return lines;
 }
 
-// ---------------- DISPLAY ----------------
-
-function splitText(text) {
-  if (text.length <= MAX_LINE_LENGTH) return [text];
-  const mid = Math.ceil(text.length / 2);
-  return [text.slice(0, mid), text.slice(mid)];
-}
-
-function shuffleText(text, element) {
+function shuffleReveal(text, el) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let iterations = 0;
+  let i = 0;
 
   const interval = setInterval(() => {
-    element.textContent = text
+    el.textContent = text
       .split("")
-      .map((char, i) =>
-        i < iterations ? char : chars[Math.floor(Math.random() * chars.length)]
-      )
+      .map((c, idx) => (idx < i ? c : chars[Math.floor(Math.random() * chars.length)]))
       .join("");
-
-    iterations += 1;
-    if (iterations >= text.length) clearInterval(interval);
-  }, 40);
+    i++;
+    if (i > text.length) clearInterval(interval);
+  }, 35);
 }
 
-function displayLines(lines) {
+function display(lines) {
   const board = document.getElementById("board");
   board.innerHTML = "";
 
@@ -73,33 +99,58 @@ function displayLines(lines) {
     const row = document.createElement("div");
     row.className = "row";
     board.appendChild(row);
-    shuffleText(line.toUpperCase(), row);
+    shuffleReveal(line.toUpperCase(), row);
   });
 }
 
-// ---------------- ROTATION ----------------
+/* ================= SONOS ================= */
+
+async function getNowPlaying() {
+  try {
+    const res = await fetch(SONOS_URL);
+    const zones = await res.json();
+    const playing = zones.find(z => z.state === "playing");
+
+    if (!playing || !playing.artist || !playing.title) return null;
+
+    return {
+      artist: playing.artist,
+      title: playing.title
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ================= ROTATION ================= */
 
 async function rotate() {
   if (showNowPlaying) {
     const data = await getNowPlaying();
-    if (data) {
-      const artistLines = splitText(data.artist);
-      const titleLines = splitText(data.title);
 
-      displayLines([
-        "NOW PLAYING:",
+    if (data) {
+      const artistLines = wrapText(data.artist);
+      const titleLines = wrapText(data.title);
+
+      display([
+        "NOW PLAYING",
         ...artistLines,
         ...titleLines
       ]);
+    } else {
+      display(["SONOS NOT PLAYING"]);
     }
   } else {
-    displayLines([CUSTOM_MESSAGES[customIndex]]);
+    display(wrapText(CUSTOM_MESSAGES[customIndex]));
     customIndex = (customIndex + 1) % CUSTOM_MESSAGES.length;
   }
 
   showNowPlaying = !showNowPlaying;
 }
 
+display(["LOADING"]);
 rotate();
-setInterval(rotate, DISPLAY_INTERVAL);
+setInterval(rotate, ROTATE_INTERVAL);
 </script>
+</body>
+</html>
