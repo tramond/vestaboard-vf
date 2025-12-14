@@ -48,6 +48,10 @@ const CUSTOM_MESSAGES = [
   "GOOD VIBES ONLY",
   "NOW PLAYING ON SONOS",
   "ENJOY THE MUSIC"
+  "MERRY CHRISTMAS BABY"
+  "MERRY CRIMMUH NIKKUH - FROM PINKY NIKKUH"
+  "HEY RIVER!" 
+  "HEY KENDALL!"
 ];
 
 const ROTATE_INTERVAL = 45000;
@@ -110,21 +114,30 @@ async function getNowPlaying() {
     const res = await fetch(SONOS_URL);
     const zones = await res.json();
 
-    const playing = zones.find(
-      z => z.state === "playing" && z.currentTrack
-    );
+    if (!Array.isArray(zones) || zones.length === 0) return null;
 
-    if (!playing) return null;
+    // Use the coordinator (this is always the authoritative player)
+    const zone = zones[0];
+    const state = zone.coordinator?.state;
+
+    if (
+      !state ||
+      state.playbackState !== "PLAYING" ||
+      !state.currentTrack
+    ) {
+      return null;
+    }
 
     return {
-      artist: playing.currentTrack.artist || "",
-      title: playing.currentTrack.title || ""
+      artist: state.currentTrack.artist || "",
+      title: state.currentTrack.title || ""
     };
   } catch (e) {
     console.error("Sonos error:", e);
     return null;
   }
 }
+
 
 /* ================= ROTATION ================= */
 
