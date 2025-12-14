@@ -1,116 +1,105 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Digital Vestaboard</title>
+<script>
+const SONOS_URL = "http://YOUR_MAC_IP:5005/zones";
 
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
+const CUSTOM_MESSAGES = [
+  "WELCOME HOME",
+  "NOW PLAYING ON SONOS",
+  "GOOD VIBES ONLY",
+  "ENJOY THE MUSIC"
+  "MERRY CHRISTMAS NIKKUH - FROM PINKY NIKKUH"
+  "TURN IT UP"
+  "THE BAISDEN FAMILY HOME"
+  "WE WISH YOU A MERRY CHRISTMAS"
+  "HEY KENDALL!"
+  "HEY RIVER!"
+];
+
+const DISPLAY_INTERVAL = 45000; // 45 seconds
+const MAX_LINE_LENGTH = 22;
+
+let customIndex = 0;
+let showNowPlaying = true;
+
+// ---------------- SONOS ----------------
+
+async function getNowPlaying() {
+  try {
+    const res = await fetch(SONOS_URL);
+    const zones = await res.json();
+
+    const playingZone = zones.find(z => z.state === "playing");
+    if (!playingZone) return null;
+
+    return {
+      artist: playingZone.artist || "",
+      title: playingZone.title || ""
+    };
+  } catch (e) {
+    console.error("Sonos error", e);
+    return null;
+  }
+}
+
+// ---------------- DISPLAY ----------------
+
+function splitText(text) {
+  if (text.length <= MAX_LINE_LENGTH) return [text];
+  const mid = Math.ceil(text.length / 2);
+  return [text.slice(0, mid), text.slice(mid)];
+}
+
+function shuffleText(text, element) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let iterations = 0;
+
+  const interval = setInterval(() => {
+    element.textContent = text
+      .split("")
+      .map((char, i) =>
+        i < iterations ? char : chars[Math.floor(Math.random() * chars.length)]
+      )
+      .join("");
+
+    iterations += 1;
+    if (iterations >= text.length) clearInterval(interval);
+  }, 40);
+}
+
+function displayLines(lines) {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  lines.forEach(line => {
+    const row = document.createElement("div");
+    row.className = "row";
+    board.appendChild(row);
+    shuffleText(line.toUpperCase(), row);
+  });
+}
+
+// ---------------- ROTATION ----------------
+
+async function rotate() {
+  if (showNowPlaying) {
+    const data = await getNowPlaying();
+    if (data) {
+      const artistLines = splitText(data.artist);
+      const titleLines = splitText(data.title);
+
+      displayLines([
+        "NOW PLAYING:",
+        ...artistLines,
+        ...titleLines
+      ]);
     }
+  } else {
+    displayLines([CUSTOM_MESSAGES[customIndex]]);
+    customIndex = (customIndex + 1) % CUSTOM_MESSAGES.length;
+  }
 
-    .board-wrapper {
-      width: 95vw;
-      max-width: 1200px;
-    }
+  showNowPlaying = !showNowPlaying;
+}
 
-    .board {
-      display: grid;
-      grid-template-columns: repeat(22, 1fr);
-      grid-template-rows: repeat(6, 1fr);
-      gap: 0.35vw;
-      padding: 0.8vw;
-      background: #000;
-      border-radius: 10px;
-      aspect-ratio: 22 / 6;
-    }
-
-    .cell {
-      background: #111;
-      color: #ffcc00;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 2.3vw;
-      font-weight: bold;
-      border-radius: 0.25vw;
-      text-transform: uppercase;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="board-wrapper">
-    <div class="board" id="board"></div>
-  </div>
-
-  <script>
-    const rows = 6;
-    const cols = 22;
-    const TOTAL = rows * cols;
-
-    const SHUFFLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :-";
-
-    let currentText = "";
-
-    const board = document.getElementById("board");
-
-    // Create cells once
-    const cells = [];
-    for (let i = 0; i < TOTAL; i++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      board.appendChild(cell);
-      cells.push(cell);
-    }
-
-    function shuffleToText(newText) {
-      newText = newText.padEnd(TOTAL, " ").slice(0, TOTAL);
-
-      cells.forEach((cell, index) => {
-        const targetChar = newText[index];
-        const oldChar = currentText[index] || " ";
-
-        if (targetChar === oldChar) {
-          cell.textContent = targetChar;
-          return;
-        }
-
-        let shuffleCount = 0;
-        const maxShuffles = 8 + Math.floor(Math.random() * 6);
-
-        const interval = setInterval(() => {
-          shuffleCount++;
-
-          const randomChar =
-            SHUFFLE_CHARS[Math.floor(Math.random() * SHUFFLE_CHARS.length)];
-
-          cell.textContent = randomChar;
-
-          if (shuffleCount >= maxShuffles) {
-            clearInterval(interval);
-            cell.textContent = targetChar;
-          }
-        }, 40);
-      });
-
-      currentText = newText;
-    }
-
-    // DEMO
-    shuffleToText("NOW PLAYING: DEMO SONG");
-
-    // Example second shuffle (shows animation clearly)
-    setTimeout(() => {
-      shuffleToText("ARTIST NAME — SONG TITLE");
-    }, 4000);
-  </script>
-</body>
-</html>
+rotate();
+setInterval(rotate, DISPLAY_INTERVAL);
+</script>
