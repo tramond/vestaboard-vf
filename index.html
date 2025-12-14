@@ -25,8 +25,8 @@
       display: grid;
       grid-template-columns: repeat(22, 1fr);
       grid-template-rows: repeat(6, 1fr);
-      gap: 0.35vw;              /* 🔽 reduced gap */
-      padding: 0.8vw;           /* 🔽 reduced padding */
+      gap: 0.35vw;
+      padding: 0.8vw;
       background: #000;
       border-radius: 10px;
       aspect-ratio: 22 / 6;
@@ -38,9 +38,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 2.3vw;         /* slightly larger text */
+      font-size: 2.3vw;
       font-weight: bold;
-      border-radius: 0.25vw;    /* tighter corners */
+      border-radius: 0.25vw;
       text-transform: uppercase;
     }
   </style>
@@ -54,17 +54,63 @@
   <script>
     const rows = 6;
     const cols = 22;
-    const text = "NOW PLAYING: DEMO SONG";
+    const TOTAL = rows * cols;
+
+    const SHUFFLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :-";
+
+    let currentText = "";
 
     const board = document.getElementById("board");
-    board.innerHTML = "";
 
-    for (let i = 0; i < rows * cols; i++) {
+    // Create cells once
+    const cells = [];
+    for (let i = 0; i < TOTAL; i++) {
       const cell = document.createElement("div");
       cell.className = "cell";
-      cell.textContent = text[i] || "";
       board.appendChild(cell);
+      cells.push(cell);
     }
+
+    function shuffleToText(newText) {
+      newText = newText.padEnd(TOTAL, " ").slice(0, TOTAL);
+
+      cells.forEach((cell, index) => {
+        const targetChar = newText[index];
+        const oldChar = currentText[index] || " ";
+
+        if (targetChar === oldChar) {
+          cell.textContent = targetChar;
+          return;
+        }
+
+        let shuffleCount = 0;
+        const maxShuffles = 8 + Math.floor(Math.random() * 6);
+
+        const interval = setInterval(() => {
+          shuffleCount++;
+
+          const randomChar =
+            SHUFFLE_CHARS[Math.floor(Math.random() * SHUFFLE_CHARS.length)];
+
+          cell.textContent = randomChar;
+
+          if (shuffleCount >= maxShuffles) {
+            clearInterval(interval);
+            cell.textContent = targetChar;
+          }
+        }, 40);
+      });
+
+      currentText = newText;
+    }
+
+    // DEMO
+    shuffleToText("NOW PLAYING: DEMO SONG");
+
+    // Example second shuffle (shows animation clearly)
+    setTimeout(() => {
+      shuffleToText("ARTIST NAME — SONG TITLE");
+    }, 4000);
   </script>
 </body>
 </html>
