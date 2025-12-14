@@ -109,15 +109,19 @@ async function getNowPlaying() {
   try {
     const res = await fetch(SONOS_URL);
     const zones = await res.json();
-    const playing = zones.find(z => z.state === "playing");
 
-    if (!playing || !playing.artist || !playing.title) return null;
+    const playing = zones.find(
+      z => z.state === "playing" && z.currentTrack
+    );
+
+    if (!playing) return null;
 
     return {
-      artist: playing.artist,
-      title: playing.title
+      artist: playing.currentTrack.artist || "",
+      title: playing.currentTrack.title || ""
     };
-  } catch {
+  } catch (e) {
+    console.error("Sonos error:", e);
     return null;
   }
 }
